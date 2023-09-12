@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">XGenYoloDemo</string>
+    <string name="time">Inference time: %d ms</string>
+</resources>
