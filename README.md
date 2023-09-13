@@ -1,6 +1,6 @@
 ## 1 Introduction
 
-This is an Android demo app to show how to integrate the output of XGen into an android app.
+This is an Android demo app to show how to integrate the output YoloX models by XGen into an android app.
 
 ## 2 Integration of XGen output into an app
 
