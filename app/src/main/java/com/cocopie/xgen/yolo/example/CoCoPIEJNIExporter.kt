@@ -14,8 +14,5 @@ object CoCoPIEJNIExporter {
     external fun CreateOpt(pbPath: String?, dataPath: String?): Long
 
     @JvmStatic
-    external fun CreateFallback(fallbackPath: String?): Long
-
-    @JvmStatic
     external fun Inference(engine: Long, input: Array<FloatArray>): Array<FloatArray>?
 }
