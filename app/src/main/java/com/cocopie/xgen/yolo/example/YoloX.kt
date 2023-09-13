@@ -158,72 +158,27 @@ class YoloX(val context: Context) {
     }
 
     private fun xGenPostProcess(outputs: FloatArray): ArrayList<Result> {
-        val results = ArrayList<Result>()
-        val rows: Int = 8400
+        val rows = 8400
         val cols: Int = classes.size + 5
-
         val output = Array(rows) { FloatArray(cols) }
         for (i in 0 until rows) {
             for (j in 0 until cols) {
                 output[i][j] = outputs[i * cols + j]
             }
         }
-
-        for (i in 0 until rows) {
-            val confidence = output[i][4]
-            var detectionClass = -1
-            var maxClass = 0f
-            val _classes = FloatArray(classes.size)
-
-            System.arraycopy(output[i], 5, _classes, 0, classes.size)
-
-            for (c in classes.indices) {
-                if (_classes[c] > maxClass) {
-                    detectionClass = c
-                    maxClass = _classes[c]
-                }
-            }
-
-            val confidenceInClass = maxClass * confidence
-            if (confidence > objThreshold) {
-                val xPos = output[i][0]
-                val yPos = output[i][1]
-                val width = output[i][2]
-                val height = output[i][3]
-                val rectF = RectF(
-                    max(0f, xPos - width / 2f),
-                    max(0f, yPos - height / 2f),
-                    min(INPUT_SIZE - 1f, xPos + width / 2f),
-                    min(INPUT_SIZE - 1f, yPos + height / 2f)
-                )
-                val recognition = Result(detectionClass, confidenceInClass, rectF)
-                results.add(recognition)
-            }
-        }
-        return nms(results)
+        return postProcess(output, rows)
     }
 
     private fun onnxPostProcess(output: Array<FloatArray>): ArrayList<Result> {
+        val rows = 8400
+        return postProcess(output, rows)
+    }
+
+    private fun postProcess(output: Array<FloatArray>, rows: Int): ArrayList<Result> {
         val results = ArrayList<Result>()
-        val rows: Int = 8400
-
         for (i in 0 until rows) {
-            val confidence = output[i][4]
-            var detectionClass = -1
-            var maxClass = 0f
-            val _classes = FloatArray(classes.size)
-
-            System.arraycopy(output[i], 5, _classes, 0, classes.size)
-
-            for (c in classes.indices) {
-                if (_classes[c] > maxClass) {
-                    detectionClass = c
-                    maxClass = _classes[c]
-                }
-            }
-
-            val confidenceInClass = maxClass * confidence
-            if (confidence > objThreshold) {
+            val objConfidence = output[i][4]
+            if (objConfidence > objThreshold) {
                 val xPos = output[i][0]
                 val yPos = output[i][1]
                 val width = output[i][2]
@@ -234,6 +189,19 @@ class YoloX(val context: Context) {
                     min(INPUT_SIZE - 1f, xPos + width / 2f),
                     min(INPUT_SIZE - 1f, yPos + height / 2f)
                 )
+                val classConfidences = FloatArray(classes.size)
+                System.arraycopy(output[i], 5, classConfidences, 0, classes.size)
+
+                var detectionClass = -1
+                var maxClassConfidence = 0f
+                for (c in classes.indices) {
+                    if (classConfidences[c] > maxClassConfidence) {
+                        detectionClass = c
+                        maxClassConfidence = classConfidences[c]
+                    }
+                }
+
+                val confidenceInClass = maxClassConfidence * objConfidence
                 val recognition = Result(detectionClass, confidenceInClass, rectF)
                 results.add(recognition)
             }
