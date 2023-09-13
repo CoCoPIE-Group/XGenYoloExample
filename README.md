@@ -63,7 +63,7 @@ And finally call the _XGenCopyTensorToBuffer_ method to copy the result into a b
 
 #### 2.6 Performance comparison
 
-Faster and smaller model files with almost constant accuracy!
+Faster and smaller model files with almost identical accuracy.
 
 | Model                       | Terminal Latency (ms) | Demo FPS | Size (MB) |
 |-----------------------------| --------------------- | -------- | --------- |
