@@ -23,7 +23,7 @@ Then call the _XGenRun_ method to let XGen runtime call the AI model to conduct 
 And finally call the _XGenCopyTensorToBuffer_ method to copy the result into a buffer.
 
 ```c
-jobjectArray RunInference(JNIEnv *env, const jobjectArray input_data) {
+    jobjectArray RunInference(JNIEnv *env, const jobjectArray input_data) {
         size_t input_tensor_num = XGenGetNumInputTensors(h);
         for (int i = 0; i < input_tensor_num; ++i) {
             auto array = (jfloatArray) env->GetObjectArrayElement(input_data, i);
