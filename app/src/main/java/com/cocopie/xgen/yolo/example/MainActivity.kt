@@ -24,10 +24,18 @@ class MainActivity : AppCompatActivity() {
 
     private val dataProcess = YoloX(context = this)
 
-    private var useXGen = false
+    private var engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
 
     companion object {
         const val PERMISSION = 1
+    }
+
+    private fun updateEngineBtn() {
+        engineBtn.text = when (engine) {
+            YoloX.ENGINE_XGEN_YOLOX_4_LARGE -> "Using XGen(YoloX large)"
+            YoloX.ENGINE_XGEN_YOLOX_4_SMALL -> "Using XGen(YoloX small)"
+            else -> "Using ONNX(YoloX)"
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,13 +45,13 @@ class MainActivity : AppCompatActivity() {
         rectView = findViewById(R.id.rectView)
         engineBtn = findViewById(R.id.engine)
         engineBtn.setOnClickListener {
-            useXGen = !useXGen
-            if (useXGen) {
-                engineBtn.text = "Using XGen"
-            } else {
-                engineBtn.text = "Using ONNX"
+            engine++
+            if (engine > YoloX.ENGINE_ONNX_YOLOX_4) {
+                engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
             }
+            updateEngineBtn()
         }
+        updateEngineBtn()
         infoView = findViewById(R.id.info)
 
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -68,7 +76,7 @@ class MainActivity : AppCompatActivity() {
         val analysis = ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_16_9)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
         analysis.setAnalyzer(Executors.newSingleThreadExecutor()) {
-            dataProcess.inference(it, useXGen).let { pair ->
+            dataProcess.inference(it, engine).let { pair ->
                 runOnUiThread {
                     rectView.transform(pair.first)
                     infoView.text = getString(R.string.time, pair.second)

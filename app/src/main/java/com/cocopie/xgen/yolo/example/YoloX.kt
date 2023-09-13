@@ -26,15 +26,21 @@ class YoloX(val context: Context) {
         const val INPUT_SIZE = 640
         const val PIXEL_SIZE = 3
 
-        const val XGEN_MODEL_NAME = "yolox_80_fp16"
-        const val ONNX_FILE_NAME = "yolox_80.onnx"
-        const val LABEL_NAME = "yolox_80.txt"
+        const val ENGINE_XGEN_YOLOX_4_LARGE = 0
+        const val ENGINE_XGEN_YOLOX_4_SMALL = 1
+        const val ENGINE_ONNX_YOLOX_4 = 2
+
+        const val XGEN_YOLOX_4_LARGE_MODEL_NAME = "yolox_4_large"
+        const val XGEN_YOLOX_4_SMALL_MODEL_NAME = "yolox_4_small"
+        const val ONNX_YOLOX_4_FILE_NAME = "yolox_4.onnx"
+        const val LABEL_YOLOX_4_FILE_NAME = "yolox_4.txt"
     }
 
     private lateinit var classes: Array<String>
     private lateinit var ortEnvironment: OrtEnvironment
     private lateinit var ortSession: OrtSession
-    private var xGenEngine: Long = -1
+    private var xGenYoloX4LargeEngine: Long = -1
+    private var xGenYoloX4SmallEngine: Long = -1
 
     private val objThreshold = 0.7f
     private val nmsThreshold = 0.45f
@@ -43,8 +49,8 @@ class YoloX(val context: Context) {
 
     fun loadModel() {
         val assetManager = context.assets
-        val outputFile = File(context.filesDir.toString(), ONNX_FILE_NAME)
-        assetManager.open(ONNX_FILE_NAME).use { inputStream ->
+        val outputFile = File(context.filesDir.toString(), ONNX_YOLOX_4_FILE_NAME)
+        assetManager.open(ONNX_YOLOX_4_FILE_NAME).use { inputStream ->
             FileOutputStream(outputFile).use { outputStream ->
                 val buffer = ByteArray(4 * 1024)
                 var read: Int
@@ -59,16 +65,20 @@ class YoloX(val context: Context) {
             OrtSession.SessionOptions()
         )
 
-        val model = XGEN_MODEL_NAME
+        xGenYoloX4LargeEngine = loadXGen(XGEN_YOLOX_4_LARGE_MODEL_NAME)
+        xGenYoloX4SmallEngine = loadXGen(XGEN_YOLOX_4_SMALL_MODEL_NAME)
+    }
+
+    private fun loadXGen(model: String): Long {
         val pbFile = File(context.filesDir, "${model}.pb")
         val dataFile = File(context.filesDir, "${model}.data")
         CoCoPIEUtils.copyAssetsFile(context, pbFile.absolutePath, "${model}.pb")
         CoCoPIEUtils.copyAssetsFile(context, dataFile.absolutePath, "${model}.data")
-        xGenEngine = CoCoPIEJNIExporter.CreateOpt(pbFile.absolutePath, dataFile.absolutePath)
+        return CoCoPIEJNIExporter.CreateOpt(pbFile.absolutePath, dataFile.absolutePath)
     }
 
     fun loadLabel(): Array<String> {
-        BufferedReader(InputStreamReader(context.assets.open(LABEL_NAME))).use { reader ->
+        BufferedReader(InputStreamReader(context.assets.open(LABEL_YOLOX_4_FILE_NAME))).use { reader ->
             var line: String?
             val classList = ArrayList<String>()
             while (reader.readLine().also { line = it } != null) {
@@ -108,15 +118,16 @@ class YoloX(val context: Context) {
 
     private fun prevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
-        return bitmapToFloatBuffer(testBitmap)
+        return bitmapToFloatBuffer(bitmap)
     }
 
-    fun inference(imageProxy: ImageProxy, useXGen: Boolean): Pair<ArrayList<Result>, Long> {
+    fun inference(imageProxy: ImageProxy, engine: Int): Pair<ArrayList<Result>, Long> {
         val inferenceTime: Long
         var time = System.currentTimeMillis()
         val floatBuffer = prevProcess(imageProxy)
         Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
-        if (useXGen) {
+        if (engine != ENGINE_ONNX_YOLOX_4) {
+            val xGenEngine = if (engine == ENGINE_XGEN_YOLOX_4_SMALL) xGenYoloX4SmallEngine else xGenYoloX4LargeEngine
             val inputArray = floatBuffer.array()
             time = System.currentTimeMillis()
             val xgenResult = CoCoPIEJNIExporter.Inference(xGenEngine, arrayOf(inputArray))
@@ -133,7 +144,6 @@ class YoloX(val context: Context) {
             Log.e("YoloX", "XGen PostProcess:${System.currentTimeMillis() - time}")
             return Pair(result, inferenceTime)
         } else {
-            val inputArray = floatBuffer.array()
             time = System.currentTimeMillis()
             val inputName = ortSession.inputNames.iterator().next()
             val inputShape = longArrayOf(
