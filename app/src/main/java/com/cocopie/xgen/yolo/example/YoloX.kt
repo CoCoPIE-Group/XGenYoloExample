@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.RectF
 import android.util.Log
 import androidx.camera.core.ImageProxy
@@ -17,6 +18,7 @@ import java.util.Collections
 import java.util.PriorityQueue
 import kotlin.math.max
 import kotlin.math.min
+
 
 class YoloX(val context: Context) {
 
@@ -38,7 +40,7 @@ class YoloX(val context: Context) {
     private val objThreshold = 0.7f
     private val nmsThreshold = 0.45f
 
-//    private val testBitmap by lazy { BitmapFactory.decodeResource(context.resources, R.drawable.test_3) }
+    private val testBitmap by lazy { BitmapFactory.decodeResource(context.resources, R.drawable.test_3) }
 
     fun loadModel() {
         // 加载ONNX模型
@@ -110,48 +112,85 @@ class YoloX(val context: Context) {
 
     private fun prevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
-        return bitmapToFloatBuffer(bitmap)
+        return bitmapToFloatBuffer(testBitmap)
     }
+
+    private var writeXGenInputData = true
+    private var writeXGenOutputData = true
+    private var writeONNXInputData = true
+    private var writeONNXOutputData = true
 
     fun inference(imageProxy: ImageProxy, useXGen: Boolean): Pair<ArrayList<Result>, Long> {
         val inferenceTime: Long
+        // 前处理
         var time = System.currentTimeMillis()
         val floatBuffer = prevProcess(imageProxy)
         Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
-        time = System.currentTimeMillis()
         if (useXGen) {
-            val xgenResult = CoCoPIEJNIExporter.Inference(xGenEngine, arrayOf(floatBuffer.array()))
+            val inputArray = floatBuffer.array()
+            // 保存XGen输入数据
+            if (writeXGenInputData) {
+                writeXGenInputData = false
+                File(context.cacheDir, "XGen_Input.bin").writeFloatArray(inputArray)
+                File(context.cacheDir, "XGen_Input.txt").writeText(inputArray.joinToString(","))
+            }
+
+            time = System.currentTimeMillis()
+            val xgenResult = CoCoPIEJNIExporter.Inference(xGenEngine, arrayOf(inputArray))
             inferenceTime = System.currentTimeMillis() - time
             Log.e("YoloX", "XGen Inference:${inferenceTime}")
             if (xgenResult.isNullOrEmpty()) {
                 return Pair(ArrayList(), inferenceTime)
             }
 
-            Log.e("YoloX", "XGen Output:" + xgenResult[0].contentToString())
+            val outputArray = xgenResult[0] // 71400的一维数组
+            // 保存XGen输出数据
+            if (writeXGenOutputData) {
+                writeXGenOutputData = false
+                File(context.cacheDir, "XGen_Output.bin").writeFloatArray(outputArray)
+                File(context.cacheDir, "XGen_Output.txt").writeText(outputArray.joinToString(","))
+            }
+            Log.e("YoloX", "XGen Output:" + outputArray.contentToString())
+            // 后处理
             time = System.currentTimeMillis()
-            val result = xGenPostProcess(xgenResult[0])
+            val result = xGenPostProcess(outputArray)
             Log.e("YoloX", "XGen PostProcess:${System.currentTimeMillis() - time}")
             return Pair(result, inferenceTime)
         } else {
+            val inputArray = floatBuffer.array()
+            // 保存ONNX输入数据
+            if (writeONNXInputData) {
+                writeONNXInputData = false
+                File(context.cacheDir, "ONNX_Input.bin").writeFloatArray(inputArray)
+                File(context.cacheDir, "ONNX_Input.txt").writeText(inputArray.joinToString(","))
+            }
+
+            time = System.currentTimeMillis()
             val inputName = ortSession.inputNames.iterator().next()
-            // 1x3x640x640
             val inputShape = longArrayOf(
                 BATCH_SIZE.toLong(),
                 PIXEL_SIZE.toLong(),
                 INPUT_SIZE.toLong(),
                 INPUT_SIZE.toLong()
-            )
+            ) // 1x3x640x640
             val inputTensor = OnnxTensor.createTensor(ortEnvironment, floatBuffer, inputShape)
             val resultTensor = ortSession.run(Collections.singletonMap(inputName, inputTensor))
             val onnxResult = resultTensor.get(0).value as Array<*>
             inferenceTime = System.currentTimeMillis() - time
             Log.e("YoloX", "ONNX Inference:${inferenceTime}")
 
-            (onnxResult[0] as Array<FloatArray>).also {
-                Log.e("YoloX", "ONNX Output:" + it[0].contentToString())
+            val outputArray = onnxResult[0] as Array<FloatArray> // 8400x85的二维数组
+            // 保存ONNX输出数据
+            if (writeONNXOutputData) {
+                writeONNXOutputData = false
+                val a = outputArray.flatMap { it.asSequence() }.toTypedArray() // 2维转1维
+                File(context.cacheDir, "ONNX_Output.bin").writeFloatArray(a)
+                File(context.cacheDir, "ONNX_Output.txt").writeText(a.joinToString(","))
             }
+            Log.e("YoloX", "ONNX Output:" + outputArray[0].contentToString())
+            // 后处理
             time = System.currentTimeMillis()
-            val result = onnxPostProcess(onnxResult[0] as Array<FloatArray>)
+            val result = onnxPostProcess(outputArray)
             Log.e("YoloX", "ONNX PostProcess:${System.currentTimeMillis() - time}")
             return Pair(result, inferenceTime)
         }

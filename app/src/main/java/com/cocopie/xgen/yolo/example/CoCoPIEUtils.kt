@@ -3,6 +3,7 @@ package com.cocopie.xgen.yolo.example
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
+import java.io.DataOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.max
@@ -81,6 +82,24 @@ object CoCoPIEUtils {
 fun File.writeBitmap(bitmap: Bitmap, format: Bitmap.CompressFormat = Bitmap.CompressFormat.JPEG, quality: Int = 100) {
     outputStream().use { out ->
         bitmap.compress(format, quality, out)
+        out.flush()
+    }
+}
+
+fun File.writeFloatArray(floatArray: FloatArray) {
+    DataOutputStream(outputStream().buffered()).use { out ->
+        for (number in floatArray) {
+            out.writeFloat(number)
+        }
+        out.flush()
+    }
+}
+
+fun File.writeFloatArray(floatArray: Array<Float>) {
+    DataOutputStream(outputStream().buffered()).use { out ->
+        for (number in floatArray) {
+            out.writeFloat(number)
+        }
         out.flush()
     }
 }
