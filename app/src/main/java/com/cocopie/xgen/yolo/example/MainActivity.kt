@@ -26,6 +26,9 @@ class MainActivity : AppCompatActivity() {
 
     private var engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
 
+    private var totalFps = 0f
+    private var fpsCount = 0
+
     companion object {
         const val PERMISSION = 1
     }
@@ -50,6 +53,9 @@ class MainActivity : AppCompatActivity() {
                 engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
             }
             updateEngineBtn()
+
+            totalFps = 0f
+            fpsCount = 0
         }
         updateEngineBtn()
         infoView = findViewById(R.id.info)
@@ -76,10 +82,13 @@ class MainActivity : AppCompatActivity() {
         val analysis = ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_16_9)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
         analysis.setAnalyzer(Executors.newSingleThreadExecutor()) {
-            dataProcess.inference(it, engine).let { pair ->
+            dataProcess.inference(it, engine).let { result ->
                 runOnUiThread {
-                    rectView.transform(pair.first)
-                    infoView.text = getString(R.string.time, pair.second)
+                    rectView.transform(result)
+                    val fps = 1000f / dataProcess.inferenceTime
+                    totalFps = if (totalFps == 0f) fps else totalFps + fps
+                    fpsCount++
+                    infoView.text = getString(R.string.time, dataProcess.inferenceTime, fps, totalFps / fpsCount)
                 }
             }
             it.close()

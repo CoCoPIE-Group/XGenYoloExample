@@ -65,11 +65,11 @@ And finally call the _XGenCopyTensorToBuffer_ method to copy the result into a b
 
 Faster and smaller model files with almost identical accuracy.
 
-| Model                       | Terminal Latency (ms) | Demo FPS | Size (MB) |
-|-----------------------------| --------------------- | -------- | --------- |
-| Original_YOLOX(ONNX, 4 cls) | 423                   | 2        | 28.0      |
-| XGen_YOLOX(Large, 4 cls)    | 86                    | 12       | 14.1      |
-| XGen_YOLOX(Small, 4 cls)    | 40                    | 25       | 2.99      |
+| Model                       | Terminal Latency (ms) | Demo FPS (Snapdragon 888) | Size (MB) |
+|-----------------------------|-----------------------|---------------------------| --------- |
+| Original_YOLOX(ONNX, 4 cls) | 714.3                 | 1.4                       | 28.0      |
+| XGen_YOLOX(Large, 4 cls)    | 94.3                  | 10.6                      | 14.1      |
+| XGen_YOLOX(Small, 4 cls)    | 49.7                  | 20.1                      | 2.99      |
 
 ## 3 Copyright
 

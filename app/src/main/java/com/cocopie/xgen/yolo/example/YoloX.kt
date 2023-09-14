@@ -45,6 +45,10 @@ class YoloX(val context: Context) {
     private val objThreshold = 0.7f
     private val nmsThreshold = 0.45f
 
+    var inferenceTime: Long = 0
+
+    private val inputBuffer = FloatBuffer.allocate(BATCH_SIZE * PIXEL_SIZE * INPUT_SIZE * INPUT_SIZE)
+
     private val testBitmap by lazy { BitmapFactory.decodeResource(context.resources, R.drawable.test_2) }
 
     fun loadModel() {
@@ -90,30 +94,29 @@ class YoloX(val context: Context) {
     }
 
     private fun imageToBitmap(imageProxy: ImageProxy): Bitmap {
+        val t = System.currentTimeMillis()
         val bitmap = imageProxy.toBitmap()
+        Log.e("YoloX", "toBitmap ${System.currentTimeMillis() - t}")
         return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
     }
 
     private fun bitmapToFloatBuffer(bitmap: Bitmap): FloatBuffer {
         // NCHW 1x3x640x640
-        val buffer = FloatBuffer.allocate(BATCH_SIZE * PIXEL_SIZE * INPUT_SIZE * INPUT_SIZE)
-        buffer.rewind()
-
+        inputBuffer.rewind()
         val area = INPUT_SIZE * INPUT_SIZE
         val bitmapData = IntArray(area)
         bitmap.getPixels(bitmapData, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-
         for (i in 0 until INPUT_SIZE - 1) {
             for (j in 0 until INPUT_SIZE - 1) {
                 val idx = INPUT_SIZE * i + j
                 val pixelValue = bitmapData[idx]
-                buffer.put(idx, (pixelValue shr 16 and 0xff).toFloat())
-                buffer.put(idx + area, (pixelValue shr 8 and 0xff).toFloat())
-                buffer.put(idx + area * 2, (pixelValue and 0xff).toFloat())
+                inputBuffer.put(idx, (pixelValue shr 16 and 0xff).toFloat())
+                inputBuffer.put(idx + area, (pixelValue shr 8 and 0xff).toFloat())
+                inputBuffer.put(idx + area * 2, (pixelValue and 0xff).toFloat())
             }
         }
-        buffer.rewind()
-        return buffer
+        inputBuffer.rewind()
+        return inputBuffer
     }
 
     private fun prevProcess(imageProxy: ImageProxy): FloatBuffer {
@@ -121,8 +124,7 @@ class YoloX(val context: Context) {
         return bitmapToFloatBuffer(bitmap)
     }
 
-    fun inference(imageProxy: ImageProxy, engine: Int): Pair<ArrayList<Result>, Long> {
-        val inferenceTime: Long
+    fun inference(imageProxy: ImageProxy, engine: Int): ArrayList<Result> {
         var time = System.currentTimeMillis()
         val floatBuffer = prevProcess(imageProxy)
         Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
@@ -134,7 +136,7 @@ class YoloX(val context: Context) {
             inferenceTime = System.currentTimeMillis() - time
             Log.e("YoloX", "XGen Inference:${inferenceTime}")
             if (xgenResult.isNullOrEmpty()) {
-                return Pair(ArrayList(), inferenceTime)
+                return ArrayList()
             }
 
             val outputArray = xgenResult[0] // 71400
@@ -142,7 +144,7 @@ class YoloX(val context: Context) {
             time = System.currentTimeMillis()
             val result = xGenPostProcess(outputArray)
             Log.e("YoloX", "XGen PostProcess:${System.currentTimeMillis() - time}")
-            return Pair(result, inferenceTime)
+            return result
         } else {
             time = System.currentTimeMillis()
             val inputName = ortSession.inputNames.iterator().next()
@@ -163,7 +165,7 @@ class YoloX(val context: Context) {
             time = System.currentTimeMillis()
             val result = onnxPostProcess(outputArray)
             Log.e("YoloX", "ONNX PostProcess:${System.currentTimeMillis() - time}")
-            return Pair(result, inferenceTime)
+            return result
         }
     }
 
