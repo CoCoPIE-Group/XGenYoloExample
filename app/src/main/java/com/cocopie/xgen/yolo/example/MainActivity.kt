@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private val dataProcess = YoloX(context = this)
 
-    private var engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
+    private var engine = YoloX.ENGINE_XGEN_YOLOX_4
 
     private var totalFps = 0f
     private var fpsCount = 0
@@ -35,9 +35,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateEngineBtn() {
         engineBtn.text = when (engine) {
-            YoloX.ENGINE_XGEN_YOLOX_4_LARGE -> "Using XGen(YoloX large)"
-            YoloX.ENGINE_XGEN_YOLOX_4_SMALL -> "Using XGen(YoloX small)"
-            else -> "Using ONNX(YoloX)"
+            YoloX.ENGINE_XGEN_YOLOX_4 -> "Using XGen"
+            else -> "Using ONNX"
         }
     }
 
@@ -50,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         engineBtn.setOnClickListener {
             engine++
             if (engine > YoloX.ENGINE_ONNX_YOLOX_4) {
-                engine = YoloX.ENGINE_XGEN_YOLOX_4_LARGE
+                engine = YoloX.ENGINE_XGEN_YOLOX_4
             }
             updateEngineBtn()
 

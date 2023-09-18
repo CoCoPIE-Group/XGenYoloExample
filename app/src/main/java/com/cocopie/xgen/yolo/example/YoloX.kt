@@ -26,12 +26,10 @@ class YoloX(val context: Context) {
         const val INPUT_SIZE = 640
         const val PIXEL_SIZE = 3
 
-        const val ENGINE_XGEN_YOLOX_4_LARGE = 0
-        const val ENGINE_XGEN_YOLOX_4_SMALL = 1
-        const val ENGINE_ONNX_YOLOX_4 = 2
+        const val ENGINE_XGEN_YOLOX_4 = 0
+        const val ENGINE_ONNX_YOLOX_4 = 1
 
-        const val XGEN_YOLOX_4_LARGE_MODEL_NAME = "yolox_4_large"
-        const val XGEN_YOLOX_4_SMALL_MODEL_NAME = "yolox_4_small"
+        const val XGEN_YOLOX_4_MODEL_NAME = "yolox_4"
         const val ONNX_YOLOX_4_FILE_NAME = "yolox_4.onnx"
         const val LABEL_YOLOX_4_FILE_NAME = "yolox_4.txt"
     }
@@ -39,8 +37,7 @@ class YoloX(val context: Context) {
     private lateinit var classes: Array<String>
     private lateinit var ortEnvironment: OrtEnvironment
     private lateinit var ortSession: OrtSession
-    private var xGenYoloX4LargeEngine: Long = -1
-    private var xGenYoloX4SmallEngine: Long = -1
+    private var xGenYoloX4Engine: Long = -1
 
     private val objThreshold = 0.7f
     private val nmsThreshold = 0.45f
@@ -69,8 +66,7 @@ class YoloX(val context: Context) {
             OrtSession.SessionOptions()
         )
 
-        xGenYoloX4LargeEngine = loadXGen(XGEN_YOLOX_4_LARGE_MODEL_NAME)
-        xGenYoloX4SmallEngine = loadXGen(XGEN_YOLOX_4_SMALL_MODEL_NAME)
+        xGenYoloX4Engine = loadXGen(XGEN_YOLOX_4_MODEL_NAME)
     }
 
     private fun loadXGen(model: String): Long {
@@ -129,10 +125,9 @@ class YoloX(val context: Context) {
         val floatBuffer = prevProcess(imageProxy)
         Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
         if (engine != ENGINE_ONNX_YOLOX_4) {
-            val xGenEngine = if (engine == ENGINE_XGEN_YOLOX_4_SMALL) xGenYoloX4SmallEngine else xGenYoloX4LargeEngine
             val inputArray = floatBuffer.array()
             time = System.currentTimeMillis()
-            val xgenResult = CoCoPIEJNIExporter.Inference(xGenEngine, arrayOf(inputArray))
+            val xgenResult = CoCoPIEJNIExporter.Inference(xGenYoloX4Engine, arrayOf(inputArray))
             inferenceTime = System.currentTimeMillis() - time
             Log.e("YoloX", "XGen Inference:${inferenceTime}")
             if (xgenResult.isNullOrEmpty()) {
