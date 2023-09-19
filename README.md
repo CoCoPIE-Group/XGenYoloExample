@@ -23,6 +23,8 @@ Find `libxgen.so` from `*compiled_file/android/lib` under XGen workplace, and pu
 
 ![](/images/location_of_so.png)
 
+If you want to compare the speed of the original onnx file with the XGen outputs, you can put the onnx file into the `app/src/main/assets` and toggle it by clicking on the 'USING XGEN' or 'USING ONNX' tab in the top right corner on the app.
+
 #### 2.2 Initialize XGen
 
 Call the _XGenInitWithFiles_ method to initialize XGen.
