@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">XGenYoloDemo</string>
-    <string name="time">Time: %dms\nFPS: %.1f\nAVG_FPS: %.1f</string>
+    <string name="time">Time: %dms\nFPS: %.1f</string>
 </resources>

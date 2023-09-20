@@ -26,7 +26,10 @@ class MainActivity : AppCompatActivity() {
 
     private var engine = YoloX.ENGINE_XGEN_YOLOX_4
 
+    @Volatile
     private var totalFps = 0f
+
+    @Volatile
     private var fpsCount = 0
 
     companion object {
@@ -53,6 +56,7 @@ class MainActivity : AppCompatActivity() {
             }
             updateEngineBtn()
 
+            infoView.text = "Calculating"
             totalFps = 0f
             fpsCount = 0
         }
@@ -85,9 +89,14 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     rectView.transform(result)
                     val fps = 1000f / dataProcess.inferenceTime
-                    totalFps = if (totalFps == 0f) fps else totalFps + fps
+                    totalFps += fps
                     fpsCount++
-                    infoView.text = getString(R.string.time, dataProcess.inferenceTime, fps, totalFps / fpsCount)
+                    // Displays the average frame rate of the last 10 frames
+                    if (fpsCount == 10) {
+                        infoView.text = getString(R.string.time, dataProcess.inferenceTime, totalFps / 10)
+                        totalFps = 0f
+                        fpsCount = 0
+                    }
                 }
             }
             it.close()
