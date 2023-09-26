@@ -7,15 +7,16 @@ This is an Android demo app to show how to integrate the output YoloX models by 
 Readers can see `app/src/main/cpp/inference_api.cc` to see how the output of XGen is used in an app for AI. This part gives the explanation.
 
 #### 2.1 Import XGen SDK
+
 Please refer to [XGen Document](https://xgen.cocopie.ai/v1.3.0/5_Results/) for XGen generated files. 
 
 Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed to `yolox_4.data` and `yolox_4.pb`.
 
 ![](/images/location_of_data_and_pb.png)
 
-Modify `app/src/main/java/com/cocopie/xgen/yolo/example/Yolox.kt`, change the variable `XGEN_YOLOX_4_MODEL_NAME` value to the file name of the above `*.data` `*.pb`.
+Modify `app/src/main/java/com/cocopie/xgen/yolo/example/Yolox.kt`, change the variable `XGEN_YOLOX_MODEL_NAME` value to the file name of the above `*.data` `*.pb`.
 
-Put your label file into`app/src/main/assets` and change the `LABEL_YOLOX_4_FILE_NAME` value accordingly.
+Put your label file into`app/src/main/assets` and change the `LABEL_YOLOX_FILE_NAME` value accordingly.
 
 ![](/images/yolox.png)
 
@@ -24,6 +25,10 @@ Find `libxgen.so` from `*compiled_file/android/lib` under XGen workplace, and pu
 ![](/images/location_of_so.png)
 
 If you want to compare the speed of the original onnx file with the XGen outputs, you can put the onnx file into the `app/src/main/assets` and toggle it by clicking on the 'USING XGEN' or 'USING ONNX' tab in the top right corner on the app.
+
+![](/images/universal_threshold.png)
+
+You can modify the `universalThreshold` variable in the `app/src/main/java/com/cocopie/xgen/yolo/example/Yolox.kt` file to adjust the detection threshold
 
 #### 2.2 Initialize XGen
 

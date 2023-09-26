@@ -26,20 +26,21 @@ class YoloX(val context: Context) {
         const val INPUT_SIZE = 640
         const val PIXEL_SIZE = 3
 
-        const val ENGINE_XGEN_YOLOX_4 = 0
-        const val ENGINE_ONNX_YOLOX_4 = 1
+        const val ENGINE_XGEN_YOLOX = 0
+        const val ENGINE_ONNX_YOLOX = 1
 
-        const val XGEN_YOLOX_4_MODEL_NAME = "yolox_4"
-        const val ONNX_YOLOX_4_FILE_NAME = "yolox_4.onnx"
-        const val LABEL_YOLOX_4_FILE_NAME = "yolox_4.txt"
+        const val XGEN_YOLOX_MODEL_NAME = "yolox_4"
+        const val ONNX_YOLOX_FILE_NAME = "yolox_4.onnx"
+        const val LABEL_YOLOX_FILE_NAME = "yolox_4.txt"
     }
 
     private lateinit var classes: Array<String>
     private lateinit var ortEnvironment: OrtEnvironment
     private lateinit var ortSession: OrtSession
-    private var xGenYoloX4Engine: Long = -1
+    private var xGenYoloxEngine: Long = -1
 
-    private val objThreshold = 0.7f
+    private val universalThreshold = 0.5f // objConf * clsConf > universalThreshold
+    private val objThreshold = 0.45f
     private val nmsThreshold = 0.45f
 
     var inferenceTime: Long = 0
@@ -50,8 +51,8 @@ class YoloX(val context: Context) {
 
     fun loadModel() {
         val assetManager = context.assets
-        val outputFile = File(context.filesDir.toString(), ONNX_YOLOX_4_FILE_NAME)
-        assetManager.open(ONNX_YOLOX_4_FILE_NAME).use { inputStream ->
+        val outputFile = File(context.filesDir.toString(), ONNX_YOLOX_FILE_NAME)
+        assetManager.open(ONNX_YOLOX_FILE_NAME).use { inputStream ->
             FileOutputStream(outputFile).use { outputStream ->
                 val buffer = ByteArray(4 * 1024)
                 var read: Int
@@ -66,7 +67,7 @@ class YoloX(val context: Context) {
             OrtSession.SessionOptions()
         )
 
-        xGenYoloX4Engine = loadXGen(XGEN_YOLOX_4_MODEL_NAME)
+        xGenYoloxEngine = loadXGen(XGEN_YOLOX_MODEL_NAME)
     }
 
     private fun loadXGen(model: String): Long {
@@ -78,7 +79,7 @@ class YoloX(val context: Context) {
     }
 
     fun loadLabel(): Array<String> {
-        BufferedReader(InputStreamReader(context.assets.open(LABEL_YOLOX_4_FILE_NAME))).use { reader ->
+        BufferedReader(InputStreamReader(context.assets.open(LABEL_YOLOX_FILE_NAME))).use { reader ->
             var line: String?
             val classList = ArrayList<String>()
             while (reader.readLine().also { line = it } != null) {
@@ -124,10 +125,10 @@ class YoloX(val context: Context) {
         var time = System.currentTimeMillis()
         val floatBuffer = prevProcess(imageProxy)
         Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
-        if (engine != ENGINE_ONNX_YOLOX_4) {
+        if (engine != ENGINE_ONNX_YOLOX) {
             val inputArray = floatBuffer.array()
             time = System.currentTimeMillis()
-            val xgenResult = CoCoPIEJNIExporter.Inference(xGenYoloX4Engine, arrayOf(inputArray))
+            val xgenResult = CoCoPIEJNIExporter.Inference(xGenYoloxEngine, arrayOf(inputArray))
             inferenceTime = System.currentTimeMillis() - time
             Log.e("YoloX", "XGen Inference:${inferenceTime}")
             if (xgenResult.isNullOrEmpty()) {
@@ -209,8 +210,10 @@ class YoloX(val context: Context) {
                 }
 
                 val confidenceInClass = maxClassConfidence * objConfidence
-                val recognition = Result(detectionClass, confidenceInClass, rectF)
-                results.add(recognition)
+                if (confidenceInClass > universalThreshold) {
+                    val recognition = Result(detectionClass, confidenceInClass, rectF)
+                    results.add(recognition)
+                }
             }
         }
         return nms(results)

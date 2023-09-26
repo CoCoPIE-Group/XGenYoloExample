@@ -24,7 +24,7 @@ class MainActivity : AppCompatActivity() {
 
     private val dataProcess = YoloX(context = this)
 
-    private var engine = YoloX.ENGINE_XGEN_YOLOX_4
+    private var engine = YoloX.ENGINE_XGEN_YOLOX
 
     @Volatile
     private var totalFps = 0f
@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateEngineBtn() {
         engineBtn.text = when (engine) {
-            YoloX.ENGINE_XGEN_YOLOX_4 -> "Using XGen"
+            YoloX.ENGINE_XGEN_YOLOX -> "Using XGen"
             else -> "Using ONNX"
         }
     }
@@ -51,8 +51,8 @@ class MainActivity : AppCompatActivity() {
         engineBtn = findViewById(R.id.engine)
         engineBtn.setOnClickListener {
             engine++
-            if (engine > YoloX.ENGINE_ONNX_YOLOX_4) {
-                engine = YoloX.ENGINE_XGEN_YOLOX_4
+            if (engine > YoloX.ENGINE_ONNX_YOLOX) {
+                engine = YoloX.ENGINE_XGEN_YOLOX
             }
             updateEngineBtn()
 
