@@ -10,7 +10,7 @@ Readers can see `app/src/main/cpp/inference_api.cc` to see how the output of XGe
 
 Please refer to [XGen Document](https://xgen.cocopie.ai/v1.3.0/5_Results/) for XGen generated files. 
 
-Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed to `yolox_4.data` and `yolox_4.pb`.
+Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed to `yolox_80.data` and `yolox_80.pb`.
 
 ![](/images/location_of_data_and_pb.png)
 

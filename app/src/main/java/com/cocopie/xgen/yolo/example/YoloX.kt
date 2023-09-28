@@ -29,9 +29,9 @@ class YoloX(val context: Context) {
         const val ENGINE_XGEN_YOLOX = 0
         const val ENGINE_ONNX_YOLOX = 1
 
-        const val XGEN_YOLOX_MODEL_NAME = "yolox_4"
-        const val ONNX_YOLOX_FILE_NAME = "yolox_4.onnx"
-        const val LABEL_YOLOX_FILE_NAME = "yolox_4.txt"
+        const val XGEN_YOLOX_MODEL_NAME = "yolox_80"
+        const val ONNX_YOLOX_FILE_NAME = "yolox_80.onnx"
+        const val LABEL_YOLOX_FILE_NAME = "yolox_80.txt"
     }
 
     private lateinit var classes: Array<String>
@@ -39,9 +39,9 @@ class YoloX(val context: Context) {
     private lateinit var ortSession: OrtSession
     private var xGenYoloxEngine: Long = -1
 
-    private val universalThreshold = 0.5f // objConf * clsConf > universalThreshold
-    private val objThreshold = 0.45f
-    private val nmsThreshold = 0.45f
+    private val universalThreshold = 0.45f // 0.5 -> 0.45
+    private val objThreshold = 0.0f // 0.45 -> 0.0
+    private val nmsThreshold = 0.6f // 0.45 -> 0.6
 
     var inferenceTime: Long = 0
 
