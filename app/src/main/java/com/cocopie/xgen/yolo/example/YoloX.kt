@@ -6,9 +6,12 @@ import ai.onnxruntime.OrtSession
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.RectF
 import android.util.Log
 import androidx.camera.core.ImageProxy
+import androidx.core.graphics.applyCanvas
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -23,13 +26,17 @@ class YoloX(val context: Context) {
 
     companion object {
         const val BATCH_SIZE = 1
-        const val INPUT_SIZE = 640
+        const val INPUT_WIDTH = 640
+        const val INPUT_HEIGHT = 640
         const val PIXEL_SIZE = 3
+
+        const val PREVIEW_WIDTH = 640
+        const val PREVIEW_HEIGHT = 480
 
         const val ENGINE_XGEN_YOLOX = 0
         const val ENGINE_ONNX_YOLOX = 1
 
-        const val XGEN_YOLOX_MODEL_NAME = "yolox_80"
+        const val XGEN_YOLOX_MODEL_NAME = "yolox_80_2"
         const val ONNX_YOLOX_FILE_NAME = "yolox_80.onnx"
         const val LABEL_YOLOX_FILE_NAME = "yolox_80.txt"
     }
@@ -43,9 +50,14 @@ class YoloX(val context: Context) {
     private val objThreshold = 0.0f // 0.45 -> 0.0
     private val nmsThreshold = 0.6f // 0.45 -> 0.6
 
+    private val modelMean: FloatArray = floatArrayOf(0.485f, 0.456f, 0.406f);
+    private val modelStd: FloatArray = floatArrayOf(0.229f, 0.224f, 0.225f);
+
     var inferenceTime: Long = 0
 
-    private val inputBuffer = FloatBuffer.allocate(BATCH_SIZE * PIXEL_SIZE * INPUT_SIZE * INPUT_SIZE)
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private val inputBuffer = FloatBuffer.allocate(BATCH_SIZE * PIXEL_SIZE * INPUT_HEIGHT * INPUT_WIDTH)
 
     private val testBitmap by lazy { BitmapFactory.decodeResource(context.resources, R.drawable.test_2) }
 
@@ -91,21 +103,27 @@ class YoloX(val context: Context) {
     }
 
     private fun imageToBitmap(imageProxy: ImageProxy): Bitmap {
-        val t = System.currentTimeMillis()
+//        val t = System.currentTimeMillis()
         val bitmap = imageProxy.toBitmap()
-        Log.e("YoloX", "toBitmap ${System.currentTimeMillis() - t}")
-        return Bitmap.createScaledBitmap(bitmap, INPUT_SIZE, INPUT_SIZE, true)
+        val paddingBitmap = Bitmap.createBitmap(INPUT_WIDTH, INPUT_HEIGHT, Bitmap.Config.ARGB_8888)
+        paddingBitmap.applyCanvas {
+            drawColor(Color.rgb(114, 114, 114))
+            drawBitmap(bitmap, (INPUT_WIDTH - bitmap.width) / 2f, (INPUT_HEIGHT - bitmap.height) / 2f, paint)
+        }
+//        File(context.cacheDir, "${System.currentTimeMillis()}.jpg").writeBitmap(paddingBitmap)
+//        Log.e("YoloX", "toBitmap ${System.currentTimeMillis() - t}")
+        return paddingBitmap
     }
 
     private fun bitmapToFloatBuffer(bitmap: Bitmap): FloatBuffer {
         // NCHW 1x3x640x640
         inputBuffer.rewind()
-        val area = INPUT_SIZE * INPUT_SIZE
+        val area = INPUT_WIDTH * INPUT_HEIGHT
         val bitmapData = IntArray(area)
         bitmap.getPixels(bitmapData, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-        for (i in 0 until INPUT_SIZE - 1) {
-            for (j in 0 until INPUT_SIZE - 1) {
-                val idx = INPUT_SIZE * i + j
+        for (i in 0 until INPUT_HEIGHT - 1) {
+            for (j in 0 until INPUT_WIDTH - 1) {
+                val idx = INPUT_WIDTH * i + j
                 val pixelValue = bitmapData[idx]
                 inputBuffer.put(idx, (pixelValue shr 16 and 0xff).toFloat())
                 inputBuffer.put(idx + area, (pixelValue shr 8 and 0xff).toFloat())
@@ -116,16 +134,40 @@ class YoloX(val context: Context) {
         return inputBuffer
     }
 
-    private fun prevProcess(imageProxy: ImageProxy): FloatBuffer {
+    private fun bitmapNormToFloatBuffer(bitmap: Bitmap): FloatBuffer {
+        // NCHW 1x3x640x640
+        inputBuffer.rewind()
+        val area = INPUT_WIDTH * INPUT_HEIGHT
+        val bitmapData = IntArray(area)
+        bitmap.getPixels(bitmapData, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        for (i in 0 until INPUT_HEIGHT - 1) {
+            for (j in 0 until INPUT_WIDTH - 1) {
+                val idx = INPUT_WIDTH * i + j
+                val pixelValue = bitmapData[idx]
+                inputBuffer.put(idx, ((pixelValue shr 16 and 0xFF) / 255f - modelMean[0]) / modelStd[0])
+                inputBuffer.put(idx + area, ((pixelValue shr 8 and 0xFF) / 255f - modelMean[1]) / modelStd[1])
+                inputBuffer.put(idx + area * 2, ((pixelValue and 0xFF) / 255f - modelMean[2]) / modelStd[2])
+            }
+        }
+        inputBuffer.rewind()
+        return inputBuffer
+    }
+
+    private fun xGenPrevProcess(imageProxy: ImageProxy): FloatBuffer {
+        val bitmap = imageToBitmap(imageProxy)
+        return bitmapNormToFloatBuffer(bitmap)
+    }
+
+    private fun onnxPrevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
         return bitmapToFloatBuffer(bitmap)
     }
 
     fun inference(imageProxy: ImageProxy, engine: Int): ArrayList<Result> {
         var time = System.currentTimeMillis()
-        val floatBuffer = prevProcess(imageProxy)
-        Log.e("YoloX", "PrevProcess:${System.currentTimeMillis() - time}")
         if (engine != ENGINE_ONNX_YOLOX) {
+            val floatBuffer = xGenPrevProcess(imageProxy)
+            Log.e("YoloX", "XGen PrevProcess:${System.currentTimeMillis() - time}")
             val inputArray = floatBuffer.array()
             time = System.currentTimeMillis()
             val xgenResult = CoCoPIEJNIExporter.Inference(xGenYoloxEngine, arrayOf(inputArray))
@@ -142,14 +184,16 @@ class YoloX(val context: Context) {
             Log.e("YoloX", "XGen PostProcess:${System.currentTimeMillis() - time}")
             return result
         } else {
+            val floatBuffer = onnxPrevProcess(imageProxy)
+            Log.e("YoloX", "ONNX PrevProcess:${System.currentTimeMillis() - time}")
             time = System.currentTimeMillis()
             val inputName = ortSession.inputNames.iterator().next()
             val inputShape = longArrayOf(
                 BATCH_SIZE.toLong(),
                 PIXEL_SIZE.toLong(),
-                INPUT_SIZE.toLong(),
-                INPUT_SIZE.toLong()
-            ) // 1x3x640x640
+                INPUT_HEIGHT.toLong(),
+                INPUT_WIDTH.toLong()
+            ) // NCHW 1x3x640x640
             val inputTensor = OnnxTensor.createTensor(ortEnvironment, floatBuffer, inputShape)
             val resultTensor = ortSession.run(Collections.singletonMap(inputName, inputTensor))
             val onnxResult = resultTensor.get(0).value as Array<*>
@@ -194,8 +238,8 @@ class YoloX(val context: Context) {
                 val rectF = RectF(
                     max(0f, xPos - width / 2f),
                     max(0f, yPos - height / 2f),
-                    min(INPUT_SIZE - 1f, xPos + width / 2f),
-                    min(INPUT_SIZE - 1f, yPos + height / 2f)
+                    min(INPUT_WIDTH - 1f, xPos + width / 2f),
+                    min(INPUT_HEIGHT - 1f, yPos + height / 2f)
                 )
                 val classConfidences = FloatArray(classes.size)
                 System.arraycopy(output[i], 5, classConfidences, 0, classes.size)

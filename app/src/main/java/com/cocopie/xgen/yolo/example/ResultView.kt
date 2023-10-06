@@ -19,16 +19,14 @@ class ResultView(context: Context, attributeSet: AttributeSet) : View(context, a
     }
 
     fun transform(results: ArrayList<Result>) {
-        val scaleX = width / YoloX.INPUT_SIZE.toFloat()
-        val scaleY = scaleX * 9f / 16f
-        val realY = width * 9f / 16f
-        val diffY = realY - height
+        val scale = width / YoloX.INPUT_WIDTH.toFloat()
+        val diffY = width - height
 
         results.forEach {
-            it.rectF.left *= scaleX
-            it.rectF.right *= scaleX
-            it.rectF.top = it.rectF.top * scaleY - (diffY / 2f)
-            it.rectF.bottom = it.rectF.bottom * scaleY - (diffY / 2f)
+            it.rectF.left *= scale
+            it.rectF.right *= scale
+            it.rectF.top = it.rectF.top * scale - (diffY / 2f)
+            it.rectF.bottom = it.rectF.bottom * scale - (diffY / 2f)
         }
         this.results = results
 

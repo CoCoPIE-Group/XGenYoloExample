@@ -2,11 +2,12 @@ package com.cocopie.xgen.yolo.example
 
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
+import android.util.Size
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -79,28 +80,37 @@ class MainActivity : AppCompatActivity() {
 
         val cameraSelector = CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build()
 
-        val preview = Preview.Builder().setTargetAspectRatio(AspectRatio.RATIO_16_9).build()
-        preview.setSurfaceProvider(previewView.surfaceProvider)
+        val preview = Preview.Builder()
+            .setTargetResolution(Size(YoloX.PREVIEW_WIDTH, YoloX.PREVIEW_HEIGHT))
+            .build()
+            .also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
 
-        val analysis = ImageAnalysis.Builder().setTargetAspectRatio(AspectRatio.RATIO_16_9)
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build()
-        analysis.setAnalyzer(Executors.newSingleThreadExecutor()) {
-            dataProcess.inference(it, engine).let { result ->
-                runOnUiThread {
-                    rectView.transform(result)
-                    val fps = 1000f / dataProcess.inferenceTime
-                    totalFps += fps
-                    fpsCount++
-                    // Displays the average frame rate of the last 10 frames
-                    if (fpsCount == 10) {
-                        infoView.text = getString(R.string.time, dataProcess.inferenceTime, totalFps / 10)
-                        totalFps = 0f
-                        fpsCount = 0
+        val analysis = ImageAnalysis.Builder()
+            .setTargetResolution(Size(YoloX.PREVIEW_WIDTH, YoloX.PREVIEW_HEIGHT))
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+            .also {
+                it.setAnalyzer(Executors.newSingleThreadExecutor()) { image ->
+                    Log.e("Main", "${image.width}x${image.height}")
+                    dataProcess.inference(image, engine).let { result ->
+                        runOnUiThread {
+                            rectView.transform(result)
+                            val fps = 1000f / dataProcess.inferenceTime
+                            totalFps += fps
+                            fpsCount++
+                            // Displays the average frame rate of the last 10 frames
+                            if (fpsCount == 10) {
+                                infoView.text = getString(R.string.time, dataProcess.inferenceTime, totalFps / 10)
+                                totalFps = 0f
+                                fpsCount = 0
+                            }
+                        }
                     }
+                    image.close()
                 }
             }
-            it.close()
-        }
 
         processCameraProvider.bindToLifecycle(this, cameraSelector, preview, analysis)
     }

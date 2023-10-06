@@ -8,9 +8,10 @@ Readers can see `app/src/main/cpp/inference_api.cc` to see how the output of XGe
 
 #### 2.1 Import XGen SDK
 
-Please refer to [XGen Document](https://xgen.cocopie.ai/v1.3.0/5_Results/) for XGen generated files. 
+Please refer to [XGen Document](https://xgen.cocopie.ai/v1.3.0/5_Results/) for XGen generated files.
 
-Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed to `yolox_80.data` and `yolox_80.pb`.
+Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed
+to `yolox_80.data` and `yolox_80.pb`.
 
 ![](/images/location_of_data_and_pb.png)
 
@@ -24,7 +25,8 @@ Find `libxgen.so` from `*compiled_file/android/lib` under XGen workplace, and pu
 
 ![](/images/location_of_so.png)
 
-If you want to compare the speed of the original onnx file with the XGen outputs, you can put the onnx file into the `app/src/main/assets` and toggle it by clicking on the 'USING XGEN' or 'USING ONNX' tab in the top right corner on the app.
+If you want to compare the speed of the original onnx file with the XGen outputs, you can put the onnx file into the `app/src/main/assets` and toggle it by clicking on the 'USING
+XGEN' or 'USING ONNX' tab in the top right corner on the app.
 
 ![](/images/universal_threshold.png)
 
@@ -89,11 +91,11 @@ And finally call the _XGenCopyTensorToBuffer_ method to copy the result into a b
 
 Faster and smaller model files with almost identical accuracy.
 
-| Model                       | Terminal Latency (ms) | Demo FPS (Snapdragon 888) | Size (MB) |
-|-----------------------------|-----------------------|---------------------------|-----------|
-| Original_YOLOX(ONNX, 4 cls) | 714.3                 | 1.4                       | 28.0      |
-| XGen_YOLOX(Large, 4 cls)    | 94.3                  | 10.6                      | 14.1      |
-| XGen_YOLOX(Small, 4 cls)    | 49.7                  | 20.1                      | 2.99      |
+| Model                | Terminal Latency (ms) | Demo FPS (Snapdragon 888) | Size (MB) |
+|----------------------|-----------------------|---------------------------|-----------|
+| Original_YOLOX(ONNX) | 714.3                 | 1.4                       | 28.0      |
+| XGen_YOLOX(Large)    | 94.3                  | 10.6                      | 14.1      |
+| XGen_YOLOX(Small)    | 49.7                  | 20.1                      | 2.99      |
 
 ## 3 Copyright
 
