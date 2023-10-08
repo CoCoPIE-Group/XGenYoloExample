@@ -21,13 +21,14 @@ import java.util.Collections
 import java.util.PriorityQueue
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class YoloX(val context: Context) {
 
     companion object {
         const val BATCH_SIZE = 1
         const val INPUT_WIDTH = 640
-        const val INPUT_HEIGHT = 640
+        const val INPUT_HEIGHT = 416
         const val PIXEL_SIZE = 3
 
         const val PREVIEW_WIDTH = 640
@@ -36,9 +37,11 @@ class YoloX(val context: Context) {
         const val ENGINE_XGEN_YOLOX = 0
         const val ENGINE_ONNX_YOLOX = 1
 
-        const val XGEN_YOLOX_MODEL_NAME = "yolox_80_2"
-        const val ONNX_YOLOX_FILE_NAME = "yolox_80.onnx"
+        const val XGEN_YOLOX_MODEL_NAME = "yolox_80_${INPUT_HEIGHT}x${INPUT_WIDTH}"
+        const val ONNX_YOLOX_FILE_NAME = "yolox_80_${INPUT_HEIGHT}x${INPUT_WIDTH}.onnx"
         const val LABEL_YOLOX_FILE_NAME = "yolox_80.txt"
+
+        private const val POST_PROCESS_ROW = INPUT_WIDTH / 8 * INPUT_HEIGHT / 8 + INPUT_WIDTH / 16 * INPUT_HEIGHT / 16 + INPUT_WIDTH / 32 * INPUT_HEIGHT / 32
     }
 
     private lateinit var classes: Array<String>
@@ -104,11 +107,15 @@ class YoloX(val context: Context) {
 
     private fun imageToBitmap(imageProxy: ImageProxy): Bitmap {
 //        val t = System.currentTimeMillis()
-        val bitmap = imageProxy.toBitmap()
+        val bitmap = imageProxy.toBitmap() // 640x480
+        val bw = bitmap.width.toFloat()
+        val bh = bitmap.height.toFloat()
+        val scale = min(INPUT_WIDTH / bw, INPUT_HEIGHT / bh)
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, (bw * scale).roundToInt(), (bh * scale).roundToInt(), true)
         val paddingBitmap = Bitmap.createBitmap(INPUT_WIDTH, INPUT_HEIGHT, Bitmap.Config.ARGB_8888)
         paddingBitmap.applyCanvas {
             drawColor(Color.rgb(114, 114, 114))
-            drawBitmap(bitmap, (INPUT_WIDTH - bitmap.width) / 2f, (INPUT_HEIGHT - bitmap.height) / 2f, paint)
+            drawBitmap(scaledBitmap, (INPUT_WIDTH - scaledBitmap.width) / 2f, (INPUT_HEIGHT - scaledBitmap.height) / 2f, paint)
         }
 //        File(context.cacheDir, "${System.currentTimeMillis()}.jpg").writeBitmap(paddingBitmap)
 //        Log.e("YoloX", "toBitmap ${System.currentTimeMillis() - t}")
@@ -160,7 +167,7 @@ class YoloX(val context: Context) {
 
     private fun onnxPrevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
-        return bitmapToFloatBuffer(bitmap)
+        return bitmapNormToFloatBuffer(bitmap)
     }
 
     fun inference(imageProxy: ImageProxy, engine: Int): ArrayList<Result> {
@@ -201,7 +208,7 @@ class YoloX(val context: Context) {
             Log.e("YoloX", "ONNX Inference:${inferenceTime}")
 
             val outputArray = onnxResult[0] as Array<FloatArray> // 8400x85
-            Log.e("YoloX", "ONNX Output:" + outputArray[0].contentToString())
+            Log.e("YoloX", "ONNX Output(${outputArray.size}):" + outputArray[0].contentToString())
             time = System.currentTimeMillis()
             val result = onnxPostProcess(outputArray)
             Log.e("YoloX", "ONNX PostProcess:${System.currentTimeMillis() - time}")
@@ -210,7 +217,7 @@ class YoloX(val context: Context) {
     }
 
     private fun xGenPostProcess(outputs: FloatArray): ArrayList<Result> {
-        val rows = 8400
+        val rows = POST_PROCESS_ROW
         val cols: Int = classes.size + 5
         val output = Array(rows) { FloatArray(cols) }
         for (i in 0 until rows) {
@@ -222,7 +229,7 @@ class YoloX(val context: Context) {
     }
 
     private fun onnxPostProcess(output: Array<FloatArray>): ArrayList<Result> {
-        val rows = 8400
+        val rows = POST_PROCESS_ROW
         return postProcess(output, rows)
     }
 
