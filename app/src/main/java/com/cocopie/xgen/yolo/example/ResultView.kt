@@ -19,14 +19,24 @@ class ResultView(context: Context, attributeSet: AttributeSet) : View(context, a
     }
 
     fun transform(results: ArrayList<Result>) {
-        val scale = width / YoloX.INPUT_WIDTH.toFloat()
-        val diffY = width - height
-
-        results.forEach {
-            it.rectF.left *= scale
-            it.rectF.right *= scale
-            it.rectF.top = it.rectF.top * scale - (diffY / 2f)
-            it.rectF.bottom = it.rectF.bottom * scale - (diffY / 2f)
+        if (YoloX.INPUT_WIDTH.toFloat() / YoloX.INPUT_HEIGHT > YoloX.PREVIEW_WIDTH.toFloat() / YoloX.PREVIEW_HEIGHT) {
+            val scale = height / YoloX.INPUT_HEIGHT.toFloat()
+            val diffX = (YoloX.INPUT_WIDTH.toFloat() - YoloX.INPUT_HEIGHT.toFloat() * YoloX.PREVIEW_WIDTH / YoloX.PREVIEW_HEIGHT) * scale
+            results.forEach {
+                it.rectF.left = it.rectF.left * scale - diffX / 2f
+                it.rectF.right = it.rectF.right * scale - diffX / 2f
+                it.rectF.top = it.rectF.top * scale
+                it.rectF.bottom = it.rectF.bottom * scale
+            }
+        } else {
+            val scale = width / YoloX.INPUT_WIDTH.toFloat()
+            val diffY = (YoloX.INPUT_HEIGHT - YoloX.INPUT_WIDTH.toFloat() * YoloX.PREVIEW_HEIGHT / YoloX.PREVIEW_WIDTH) * scale
+            results.forEach {
+                it.rectF.left *= scale
+                it.rectF.right *= scale
+                it.rectF.top = it.rectF.top * scale - diffY / 2f
+                it.rectF.bottom = it.rectF.bottom * scale - diffY / 2f
+            }
         }
         this.results = results
 

@@ -31,7 +31,7 @@ class YoloX(val context: Context) {
         const val INPUT_HEIGHT = 416
         const val PIXEL_SIZE = 3
 
-        const val PREVIEW_WIDTH = 640
+        const val PREVIEW_WIDTH = 640 // Just like ncnn's demo
         const val PREVIEW_HEIGHT = 480
 
         const val ENGINE_XGEN_YOLOX = 0
