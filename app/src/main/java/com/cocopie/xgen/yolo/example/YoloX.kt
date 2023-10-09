@@ -28,7 +28,7 @@ class YoloX(val context: Context) {
     companion object {
         const val BATCH_SIZE = 1
         const val INPUT_WIDTH = 640
-        const val INPUT_HEIGHT = 416
+        const val INPUT_HEIGHT = 640
         const val PIXEL_SIZE = 3
 
         const val PREVIEW_WIDTH = 640 // Just like ncnn's demo
@@ -162,12 +162,12 @@ class YoloX(val context: Context) {
 
     private fun xGenPrevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
-        return bitmapNormToFloatBuffer(bitmap)
+        return bitmapToFloatBuffer(bitmap)
     }
 
     private fun onnxPrevProcess(imageProxy: ImageProxy): FloatBuffer {
         val bitmap = imageToBitmap(imageProxy)
-        return bitmapNormToFloatBuffer(bitmap)
+        return bitmapToFloatBuffer(bitmap)
     }
 
     fun inference(imageProxy: ImageProxy, engine: Int): ArrayList<Result> {

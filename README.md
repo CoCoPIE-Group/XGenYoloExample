@@ -11,7 +11,7 @@ Readers can see `app/src/main/cpp/inference_api.cc` to see how the output of XGe
 Please refer to [XGen Document](https://xgen.cocopie.ai/v1.3.0/5_Results/) for XGen generated files.
 
 Find `*.data`, `*.pb` files from `*compiled_file/android/model` under XGen workplace, and put them into `app/src/main/assets` in this project. In this example, they are renamed
-to `yolox_80.data` and `yolox_80.pb`.
+to `yolox_80_640x640.data` and `yolox_80_640x640.pb`.
 
 ![](/images/location_of_data_and_pb.png)
 
@@ -91,11 +91,10 @@ And finally call the _XGenCopyTensorToBuffer_ method to copy the result into a b
 
 Faster and smaller model files with almost identical accuracy.
 
-| Model                | Terminal Latency (ms) | Demo FPS (Snapdragon 888) | Size (MB) |
-|----------------------|-----------------------|---------------------------|-----------|
-| Original_YOLOX(ONNX) | 714.3                 | 1.4                       | 28.0      |
-| XGen_YOLOX(Large)    | 94.3                  | 10.6                      | 14.1      |
-| XGen_YOLOX(Small)    | 49.7                  | 20.1                      | 2.99      |
+| Model       | Terminal Latency (ms) | Demo FPS (Snapdragon 888) | Size (MB) |
+|-------------|-----------------------|---------------------------|-----------|
+| YOLOX(ONNX) | 587                   | 1.7                       | 34.2      |
+| YOLOX(XGen) | 94                    | 10.6                      | 17.1      |
 
 ## 3 Copyright
 
